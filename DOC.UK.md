@@ -100,7 +100,9 @@ resp.Choices[0].Message.ReasoningContent // міркування
 resp.Choices[0].Message.Content          // відповідь
 ```
 
-`Generate` і `Stream` повертають лише текст фінальної відповіді.
+`Generate` і `Stream` повертають лише текст фінальної відповіді. Нативний
+`ChatStream` стрімить і міркування: кожна дельта `ChatStreamChunk` несе
+`ReasoningContent` поряд із `Content`.
 
 ## Інструменти й system-промпти
 

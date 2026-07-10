@@ -101,7 +101,9 @@ resp.Choices[0].Message.ReasoningContent // the thinking
 resp.Choices[0].Message.Content          // the answer
 ```
 
-`Generate` and `Stream` return only the final answer text.
+`Generate` and `Stream` return only the final answer text. The native
+`ChatStream` also streams the reasoning: each `ChatStreamChunk` delta carries
+`ReasoningContent` alongside `Content`.
 
 ## Tools and system prompts
 
