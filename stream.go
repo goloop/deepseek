@@ -10,15 +10,18 @@ import (
 	"github.com/goloop/ai"
 )
 
-// ChatStreamChunk is one streamed chat completions event.
+// ChatStreamChunk is one streamed chat completions event. For reasoning models
+// (deepseek-reasoner) the chain-of-thought arrives in Delta.ReasoningContent
+// before the answer arrives in Delta.Content.
 type ChatStreamChunk struct {
 	ID      string `json:"id"`
 	Model   string `json:"model"`
 	Choices []struct {
 		Index int `json:"index"`
 		Delta struct {
-			Content   string `json:"content"`
-			ToolCalls []struct {
+			Content          string `json:"content"`
+			ReasoningContent string `json:"reasoning_content"`
+			ToolCalls        []struct {
 				Index    int    `json:"index"`
 				ID       string `json:"id"`
 				Function struct {
@@ -92,7 +95,9 @@ type toolAcc struct {
 	args     []byte
 }
 
-// Stream implements [ai.Client] over streaming chat completions.
+// Stream implements [ai.Client] over streaming chat completions. Reasoning
+// deltas from reasoning models are not emitted here, since a Chunk carries the
+// answer text; use [Client.ChatCompletionStream] to read Delta.ReasoningContent.
 func (c *Client) Stream(ctx context.Context, req *ai.Request) iter.Seq2[ai.Chunk, error] {
 	return func(yield func(ai.Chunk, error) bool) {
 		cr, err := c.chatRequest(req, true)

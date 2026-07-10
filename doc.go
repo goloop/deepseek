@@ -5,7 +5,8 @@
 // with any other goloop AI provider. On top of that it exposes the native
 // chat completions endpoint with its full options and model listing. The wire
 // format is chat-completions compatible; reasoning models return their
-// chain-of-thought in ChatMessage.ReasoningContent.
+// chain-of-thought in ChatMessage.ReasoningContent (and, when streaming,
+// ChatStreamChunk's Delta.ReasoningContent).
 //
 //	c := deepseek.New(os.Getenv("DEEPSEEK_API_KEY"))
 //	resp, err := c.Generate(ctx, &ai.Request{
