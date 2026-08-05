@@ -92,17 +92,24 @@ var seo SEO
 err = resp.JSON(&seo)
 ```
 
-`ai.FormatJSON` goes out as `{"type":"json_object"}` and `ai.FormatJSONSchema`
-as `{"type":"json_schema", ...}`. Plain JSON mode also appends
-`ai.Format.Instruction()` to the system prompt: this wire format rejects
-`json_object` unless the word "json" appears in the messages. Your own system
-prompt is kept and the instruction follows it; schema mode leaves it untouched.
+`response_format` here takes `"text"` or `"json_object"` - there is no
+`json_schema` type, unlike the rest of this wire format's family. So **both**
+`ai.FormatJSON` and `ai.FormatJSONSchema` go out as `{"type":"json_object"}`,
+and a schema reaches the model through the system prompt, where
+`ai.Format.Instruction()` already spells it out. Your own system prompt is kept
+and the instruction follows it.
 
+That difference is reported rather than hidden:
 
-`ai.Response.Format` is `ai.FormatNative`: this provider enforces every shape
-it accepts. Which models support schema mode is the provider's business - there
-is no capability table here, so an unsupported pairing is reported by the
-provider itself.
+| `ai.Format.Type` | `ai.Response.Format` | Why |
+|---|---|---|
+| `ai.FormatJSON` | `ai.FormatNative` | the provider enforces valid JSON |
+| `ai.FormatJSONSchema` | `ai.FormatEmulated` | the schema is in the prompt: the model was asked, not held to it |
+
+Code that needs schema conformance guaranteed should validate the decoded
+value, or use a provider that constrains decoding to a schema. Sending
+`{"type":"json_schema"}` here would fail every such request, so the driver asks
+for what the endpoint does have instead.
 
 ## Native chat completions
 

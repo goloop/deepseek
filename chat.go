@@ -193,16 +193,15 @@ func (c *Client) chatRequest(req *ai.Request, stream bool) (*ChatRequest, error)
 	return cr, nil
 }
 
-// systemPrompt returns the system prompt to send, which for plain JSON mode is
-// the caller's with the shared format instruction appended.
+// systemPrompt returns the system prompt to send: the caller's, with the
+// shared format instruction appended whenever a format was asked for.
 //
-// This wire format inherits the rule that JSON mode is refused unless the word
-// "json" appears somewhere in the messages. Adding the instruction satisfies
-// it and says the same thing to the model; it is a precondition of the
-// endpoint, not a stand-in for it, so the format is still enforced natively.
-// Schema mode carries no such rule and is left alone.
+// Two separate reasons put it there. JSON mode is refused outright unless the
+// word "json" appears somewhere in the messages, so plain JSON needs the
+// instruction as a precondition of the endpoint. A schema needs it because
+// this provider has nowhere else to put one - see responseFormat.
 func systemPrompt(req *ai.Request) string {
-	if req.Format != nil && req.Format.Type == ai.FormatJSON {
+	if req.Format != nil && req.Format.Type != ai.FormatText {
 		return req.Format.AppendInstruction(req.System)
 	}
 	return req.System
@@ -211,43 +210,43 @@ func systemPrompt(req *ai.Request) string {
 // responseFormat renders an [ai.Format] as the provider's response_format
 // value. It returns nil when nothing was asked for.
 //
-// Which models accept schema mode is the provider's business: a capability
-// table here would be wrong the week a model ships, so an unsupported pairing
-// is left to the provider, which says so plainly in its error.
+// The field accepts "text" or "json_object" and nothing else: unlike the rest
+// of this wire format's family, there is no "json_schema" here. So a schema
+// asks for json_object - which does constrain the reply to valid JSON - and
+// travels to the model in the prompt, where [ai.Format.Instruction] already
+// spells it out. Sending a type the endpoint rejects would fail every such
+// request; asking for what it does have is the strongest honest thing
+// available. [formatMode] reports the difference.
 func responseFormat(f *ai.Format) (json.RawMessage, error) {
 	if f == nil || f.Type == ai.FormatText {
 		return nil, nil
 	}
 
 	switch f.Type {
-	case ai.FormatJSON:
+	case ai.FormatJSON, ai.FormatJSONSchema:
 		return json.RawMessage(`{"type":"json_object"}`), nil
-	case ai.FormatJSONSchema:
-		var body struct {
-			Type   string `json:"type"`
-			Schema struct {
-				Name   string          `json:"name"`
-				Schema json.RawMessage `json:"schema"`
-				Strict bool            `json:"strict,omitempty"`
-			} `json:"json_schema"`
-		}
-		body.Type = "json_schema"
-		body.Schema.Name = f.SchemaName()
-		body.Schema.Schema = f.Schema
-		body.Schema.Strict = f.Strict
-		return json.Marshal(body)
 	default:
 		return nil, ai.ErrBadFormat
 	}
 }
 
-// formatMode reports how the request's format was satisfied. Every shape this
-// driver accepts is enforced by the provider itself.
+// formatMode reports how the request's format was satisfied.
+//
+// Valid JSON is enforced by the provider. Conformance to a schema is not: the
+// schema is in the prompt, so the model was asked for it rather than held to
+// it, and a caller who needs it guaranteed should read that difference.
 func formatMode(f *ai.Format) ai.FormatMode {
-	if f == nil || f.Type == ai.FormatText {
+	if f == nil {
 		return ai.FormatNone
 	}
-	return ai.FormatNative
+	switch f.Type {
+	case ai.FormatJSON:
+		return ai.FormatNative
+	case ai.FormatJSONSchema:
+		return ai.FormatEmulated
+	default:
+		return ai.FormatNone
+	}
 }
 
 func chatMessages(req *ai.Request, system string) []ChatMessage {

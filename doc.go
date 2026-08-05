@@ -16,11 +16,13 @@
 //
 // # Structured output
 //
-// ai.Request.Format maps onto the provider's response_format, so a request for
-// JSON is enforced rather than merely asked for, and ai.Response.JSON decodes
-// the reply. Plain JSON mode also puts ai.Format.Instruction into the system
-// prompt, because this wire format rejects json_object unless the word "json"
-// appears in the messages.
+// ai.Request.Format asks for JSON through the provider's response_format, and
+// ai.Response.JSON decodes the reply. The field takes "json_object" and no
+// schema type, so ai.FormatJSONSchema also asks for json_object and sends the
+// schema itself in the system prompt: valid JSON is enforced, conformance to
+// the schema is requested. ai.Response.Format reports which, per format type.
+// The instruction is in the prompt either way, since this wire format rejects
+// json_object unless the word "json" appears in the messages.
 //
 // It depends only on goloop/ai and the standard library.
 package deepseek

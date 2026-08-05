@@ -39,7 +39,10 @@ func TestResponseFormatJSON(t *testing.T) {
 	}
 }
 
-// TestResponseFormatJSONSchema pins the nested shape the provider expects.
+// TestResponseFormatJSONSchema pins what a schema turns into here. The field
+// takes "text" or "json_object" and nothing else, so a request carrying
+// {"type":"json_schema"} would be rejected by the endpoint every time - the
+// schema asks for json_object and reaches the model through the prompt.
 func TestResponseFormatJSONSchema(t *testing.T) {
 	schema := json.RawMessage(`{"type":"object","properties":{"a":{"type":"string"}}}`)
 	cr, err := (&Client{}).chatRequest(askFor(&ai.Format{
@@ -52,27 +55,20 @@ func TestResponseFormatJSONSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	var got struct {
-		Type   string `json:"type"`
-		Schema struct {
-			Name   string          `json:"name"`
-			Schema json.RawMessage `json:"schema"`
-			Strict bool            `json:"strict"`
-		} `json:"json_schema"`
+	if got := string(cr.ResponseFormat); got != `{"type":"json_object"}` {
+		t.Errorf("response_format = %s, want json_object", got)
 	}
-	if err := json.Unmarshal(cr.ResponseFormat, &got); err != nil {
-		t.Fatalf("response_format is not valid JSON: %v", err)
-	}
-	if got.Type != "json_schema" || got.Schema.Name != "seo" || !got.Schema.Strict {
-		t.Errorf("response_format = %s", cr.ResponseFormat)
-	}
-	if string(got.Schema.Schema) != string(schema) {
-		t.Errorf("schema = %s, want %s", got.Schema.Schema, schema)
+	if strings.Contains(string(cr.ResponseFormat), "json_schema") {
+		t.Errorf("response_format carries a type this endpoint rejects: %s",
+			cr.ResponseFormat)
 	}
 
-	// Schema mode has no word requirement, so the prompt is left alone.
-	if system, _ := cr.Messages[0].Content.(string); system != "You are terse." {
-		t.Errorf("system prompt was changed: %q", system)
+	system, _ := cr.Messages[0].Content.(string)
+	if !strings.HasPrefix(system, "You are terse.") {
+		t.Errorf("caller's system prompt was lost: %q", system)
+	}
+	if !strings.Contains(system, string(schema)) {
+		t.Errorf("the schema never reached the model: %q", system)
 	}
 }
 
@@ -110,15 +106,29 @@ func TestResponseFormatRejectsUnknown(t *testing.T) {
 	}
 }
 
-// TestFormatModeIsNative records what this driver promises: every shape it
-// accepts is enforced by the provider, not merely asked for.
-func TestFormatModeIsNative(t *testing.T) {
-	for _, f := range []*ai.Format{
-		{Type: ai.FormatJSON},
-		{Type: ai.FormatJSONSchema, Schema: json.RawMessage(`{"type":"object"}`)},
-	} {
-		if got := formatMode(f); got != ai.FormatNative {
-			t.Errorf("formatMode(%s) = %s, want native", f.Type, got)
+// TestFormatMode records what this driver promises, and where it stops. Valid
+// JSON the provider enforces; conformance to a schema it does not, because the
+// schema is in the prompt. A caller that needs the schema guaranteed has to be
+// able to see that.
+func TestFormatMode(t *testing.T) {
+	cases := map[ai.FormatMode][]*ai.Format{
+		ai.FormatNative: {
+			{Type: ai.FormatJSON},
+		},
+		ai.FormatEmulated: {
+			{Type: ai.FormatJSONSchema, Schema: json.RawMessage(`{"type":"object"}`)},
+		},
+		ai.FormatNone: {
+			nil,
+			{Type: ai.FormatText},
+			{Type: ai.FormatType(99)},
+		},
+	}
+	for want, formats := range cases {
+		for _, f := range formats {
+			if got := formatMode(f); got != want {
+				t.Errorf("formatMode(%v) = %s, want %s", f, got, want)
+			}
 		}
 	}
 }
