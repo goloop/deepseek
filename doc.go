@@ -14,5 +14,13 @@
 //	    Messages: []ai.Message{ai.UserText("Say hello in one word.")},
 //	})
 //
+// # Structured output
+//
+// ai.Request.Format maps onto the provider's response_format, so a request for
+// JSON is enforced rather than merely asked for, and ai.Response.JSON decodes
+// the reply. Plain JSON mode also puts ai.Format.Instruction into the system
+// prompt, because this wire format rejects json_object unless the word "json"
+// appears in the messages.
+//
 // It depends only on goloop/ai and the standard library.
 package deepseek
