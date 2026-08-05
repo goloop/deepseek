@@ -10,6 +10,7 @@ completions (інтерфейс і нативний), стрімінг, reasonin
 - [Ментальна модель](#ментальна-модель)
 - [Створення клієнта](#створення-клієнта)
 - [Generate і Stream](#generate-і-stream)
+- [Структурований вивід](#структурований-вивід)
 - [Нативні chat completions](#нативні-chat-completions)
 - [Reasoning-моделі](#reasoning-моделі)
 - [Інструменти й system-промпти](#інструменти-й-system-промпти)
@@ -69,6 +70,37 @@ for chunk, err := range c.Stream(ctx, req) {
 	fmt.Print(chunk.Text)
 }
 ```
+
+## Структурований вивід
+
+`ai.Request.Format` лягає на власний `response_format` провайдера, тож запит на JSON
+провайдер **дотримує**, а не просто «чує»:
+
+```go
+resp, err := c.Generate(ctx, &ai.Request{
+	Model:    "the-model",
+	Messages: []ai.Message{ai.UserText("Склади SEO-поля для цієї статті.")},
+	Format: &ai.Format{
+		Type:   ai.FormatJSONSchema,
+		Name:   "seo",
+		Schema: schema,
+	},
+})
+
+var seo SEO
+err = resp.JSON(&seo)
+```
+
+`ai.FormatJSON` іде як `{"type":"json_object"}`, а `ai.FormatJSONSchema` - як
+`{"type":"json_schema", ...}`. У простому JSON-режимі до system-промпта ще
+додається `ai.Format.Instruction()`: цей wire-формат відбиває `json_object`,
+якщо в повідомленнях ніде немає слова «json». Ваш власний system-промпт
+лишається, інструкція йде після нього; схемний режим промпт не чіпає.
+
+
+`ai.Response.Format` дорівнює `ai.FormatNative`: цей провайдер дотримує кожну
+форму, яку приймає. Які моделі підтримують схемний режим - справа провайдера;
+таблиці можливостей тут немає, тож про непідтримувану пару скаже він сам.
 
 ## Нативні chat completions
 
