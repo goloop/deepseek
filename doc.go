@@ -24,5 +24,16 @@
 // The instruction is in the prompt either way, since this wire format rejects
 // json_object unless the word "json" appears in the messages.
 //
+// # Hosted capabilities
+//
+// This provider's chat endpoint declares function tools only, so there is no
+// server-side capability to map onto. ai.Hosted is refused with
+// ai.ErrNoHosted.
+//
+// The refusal is the documented behavior, not a gap waiting to be filled
+// in silence: an answer produced without the search that was asked for
+// looks exactly like one produced with it. A caller who would rather have
+// the answer anyway asks again without ai.Request.Hosted.
+//
 // It depends only on goloop/ai and the standard library.
 package deepseek
