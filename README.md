@@ -9,7 +9,6 @@ AI provider, and exposes the native chat-completions endpoint with its full
 options on top.
 
 ## Features
-
 - Chat completions: `Generate` for a single response, `Stream` for
   token-by-token output through `iter.Seq2`.
 - Tool use (function calling) and system prompts.
@@ -21,6 +20,8 @@ options on top.
 - Structured output: `ai.Format` asks for JSON through the provider's
   `response_format`; a schema travels in the prompt, since the field has no
   schema type. Read the reply with `resp.JSON(&v)`.
+- Hosted capabilities: `ai.Request.Hosted` is refused with `ai.ErrNoHosted`,
+  because this chat endpoint declares function tools only.
 
 ## Installation
 

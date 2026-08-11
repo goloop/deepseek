@@ -12,6 +12,7 @@ Ukrainian version: **[DOC.UK.md](DOC.UK.md)**.
 - [Creating a client](#creating-a-client)
 - [Generate and Stream](#generate-and-stream)
 - [Structured output](#structured-output)
+- [Hosted web search](#hosted-web-search)
 - [Native chat completions](#native-chat-completions)
 - [Reasoning models](#reasoning-models)
 - [Tools and system prompts](#tools-and-system-prompts)
@@ -158,6 +159,19 @@ are sent back as `RoleTool` messages whose `ai.ToolResult.ID` matches the
 models, err := c.Models(ctx)
 m, err := c.GetModel(ctx, deepseek.ModelChat)
 ```
+
+## Hosted web search
+
+`ai.Request.Hosted` is answered with `ai.ErrNoHosted` before the request
+leaves.
+
+This provider's chat endpoint declares function tools only, so there is no
+server-side capability to map onto - nothing to run and nothing to cite.
+
+The refusal is the documented behavior, not a gap left in silence: an answer
+produced without the search that was asked for looks exactly like one produced
+with it, so failing loudly is the only way you can tell them apart. If you would
+rather have the answer anyway, ask again without `Hosted`.
 
 ## Options and errors
 
