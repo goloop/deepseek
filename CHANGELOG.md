@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.4] - 2026-09-21
+
+Patch release.
+
+### Fixed
+- `Stream` no longer turns a cut-off stream into a success. A stream that
+  ended without a `[DONE]` sentinel and without a `finish_reason` was treated
+  like a finished one: the tool calls it left open were handed out with
+  whatever arguments had arrived, and `Done` followed with no error, so a tool
+  loop could run an action the model never finished and a caller could keep a
+  truncated answer as complete. Such a stream now ends with
+  `io.ErrUnexpectedEOF` and hands out no open tool call. A `finish_reason`
+  still counts as a proper ending on its own, so a stream that loses only the
+  trailing sentinel is not reported as broken.
+- `Stream` reports a tool call whose accumulated arguments are not valid JSON
+  as an error instead of handing out an `Input` that cannot be decoded.
+
+### Changed
+- Depends on `ai` v1.2.1, whose `SSEEvents` bounds the size of one event, so a
+  stream that never ends an event cannot make the reader grow without limit.
+
 ## [1.1.3] - 2026-08-15
 
 Patch release.
