@@ -37,6 +37,9 @@ type ChatStreamChunk struct {
 }
 
 func (c *Client) openStream(ctx context.Context, req *ChatRequest) (*http.Response, error) {
+	if req == nil {
+		return nil, ai.ErrNoRequest
+	}
 	r := *req // do not mutate the caller's request
 	r.Stream = true
 	if r.StreamOptions == nil {

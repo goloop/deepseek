@@ -205,3 +205,7 @@ if errors.As(err, &apiErr) && apiErr.Status == http.StatusTooManyRequests {
 
 Requests missing a model or messages fail before the network with
 `ai.ErrNoModel` or `ai.ErrNoMessages`.
+
+## Release v1.1.5
+
+Reject nil native chat and stream requests before dereferencing them.
