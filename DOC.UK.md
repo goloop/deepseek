@@ -206,3 +206,7 @@ if errors.As(err, &apiErr) && apiErr.Status == http.StatusTooManyRequests {
 ## Реліз v1.1.5
 
 Native chat та stream повертають ai.ErrNoRequest для nil-запиту.
+
+## Поведінка запиту
+
+Нативний `ChatCompletionStream` повертає `Delta.ReasoningContent` окремо від фінального тексту.

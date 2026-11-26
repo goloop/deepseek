@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Detect incomplete streams and validate tool arguments.
 
+Use the released streaming core.
+
 ## [1.1.5] - 2026-10-18
 
 Reject nil native chat and stream requests before dereferencing them.

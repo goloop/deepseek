@@ -209,3 +209,7 @@ Requests missing a model or messages fail before the network with
 ## Release v1.1.5
 
 Reject nil native chat and stream requests before dereferencing them.
+
+## Request behavior
+
+Use the native `ChatCompletionStream` to read `Delta.ReasoningContent` separately from the final answer.
