@@ -51,13 +51,16 @@ func (c *Client) openStream(ctx context.Context, req *ChatRequest) (*http.Respon
 	}
 	h := c.headers()
 	h.Set("accept", "text/event-stream")
-	resp, err := c.opts.Do(ctx, http.MethodPost, c.opts.BaseURL+"/chat/completions", body, h)
+	resp, err := c.opts.DoStream(ctx, http.MethodPost, c.opts.BaseURL+"/chat/completions", body, h)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		data, _ := io.ReadAll(resp.Body)
+		data, readErr := ai.ReadResponse(resp.Body)
 		resp.Body.Close()
+		if readErr != nil {
+			return nil, readErr
+		}
 		return nil, parseError(resp.StatusCode, data)
 	}
 	return resp, nil
@@ -74,6 +77,7 @@ func (c *Client) ChatCompletionStream(ctx context.Context, req *ChatRequest) ite
 		}
 		defer resp.Body.Close()
 
+		finished := false
 		for data, err := range ai.SSEEvents(resp.Body) {
 			if err != nil {
 				yield(ChatStreamChunk{}, err)
@@ -87,9 +91,17 @@ func (c *Client) ChatCompletionStream(ctx context.Context, req *ChatRequest) ite
 				yield(ChatStreamChunk{}, e)
 				return
 			}
+			for _, choice := range chunk.Choices {
+				if choice.FinishReason != "" {
+					finished = true
+				}
+			}
 			if !yield(chunk, nil) {
 				return
 			}
+		}
+		if !finished {
+			yield(ChatStreamChunk{}, io.ErrUnexpectedEOF)
 		}
 	}
 }
